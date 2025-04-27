@@ -1,3 +1,201 @@
-# Get started
+# Quickstart
 
-Hello world!
+> This documentation is based on the [official Coinbase Wallet API v2 Quickstart](https://docs.cdp.coinbase.com/wallet-api-v2/docs/quickstart).
+
+The v2 Wallet API allows you to create onchain accounts and send funds within minutes. In this quickstart, you will learn how to create an EVM account, fund it with testnet ETH, and transfer funds between accounts.
+
+## What you'll learn
+
+- How to install the v2 CDP SDK
+- How to create an EVM account
+- How to fund your account with testnet ETH
+- How to create an EVM smart account
+- How to use EIP-4337 User Operations
+
+## Requirements
+
+> **Info**
+> Make sure that your developer environment satisfies all of the requirements before proceeding through the quickstart.
+
+The CDP SDK requires Node.js v18.x or higher. You can run the following command in your terminal to check your local Node.js version:
+
+```bash
+node --version
+```
+
+Follow these steps to run the code snippets in this quickstart:
+
+1. Initialize a new project by running
+
+```bash
+mkdir cdp-sdk-example && cd cdp-sdk-example && npm init -y
+```
+
+2. Add "type": "module" to your package.json file that was created in the previous step
+
+```json
+{
+  "name": "cdp-sdk-example",
+  "version": "1.0.0",
+  "main": "index.js",
+  "type": "module",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "description": ""
+}
+```
+
+3. Install the CDP SDK
+
+```bash
+npm install @coinbase/cdp-sdk
+```
+
+4. Create a new file called main.ts
+
+```bash
+touch main.ts
+```
+
+5. Copy and paste the example code you'd like to run into main.ts
+
+6. Execute main.ts
+
+```bash
+npx tsx main.ts
+```
+
+## Environment Setup
+
+Follow these instructions to set up your environment to use the v2 Wallet API. Make sure to set up your environment variables before running the code snippets.
+
+1. Create a CDP Secret API key
+2. Generate a Wallet Secret
+3. Export these variables in your shell
+
+```bash
+export CDP_API_KEY_ID=your-api-key-id
+export CDP_API_KEY_SECRET=your-api-key-secret
+export CDP_WALLET_SECRET=your-wallet-secret
+```
+
+## Create an EVM Account
+
+The following code illustrate how to create an EVM account managed by the v2 Wallet API.
+
+**main.ts**
+
+```javascript
+import { CdpClient } from "@coinbase/cdp-sdk";
+
+const cdp = new CdpClient();
+
+const evmAccount = await cdp.evm.createAccount();
+console.log(`Created account: ${evmAccount.address}`);
+```
+
+> **Caution**
+> In a production environment, we recommend turning on IP Whitelisting.
+
+## Fund an EVM Account
+
+Accounts do not have funds on them to start. We provide a Faucet API to fund your account with testnet ETH.
+
+**main.ts**
+
+```javascript
+import { CdpClient } from "@coinbase/cdp-sdk";
+
+const cdp = new CdpClient();
+
+const evmAccount = await cdp.evm.createAccount();
+const { transactionHash } = await cdp.evm.requestFaucet({
+  address: evmAccount.address,
+  network: "base-sepolia",
+  token: "eth",
+});
+
+console.log(
+  `Requested funds from faucet: https://sepolia.basescan.org/tx/${transactionHash}`
+);
+```
+
+## Create an EVM Smart Account
+
+Smart accounts are smart contracts on EVM blockchains that offer advanced functionality such as gas sponsorships and spend permissions.
+
+Smart accounts require an owner account to sign on its behalf. In this example, we will use the previously created EVM account as the owner.
+
+**main.ts**
+
+```javascript
+import { CdpClient } from "@coinbase/cdp-sdk";
+
+const cdp = new CdpClient();
+
+const evmAccount = await cdp.evm.createAccount();
+const smartAccount = await cdp.evm.createSmartAccount({
+  owner: evmAccount,
+});
+console.log(`Created smart account: ${smartAccount.address}`);
+```
+
+## User Operations with EIP-4337
+
+Smart accounts support the EIP-4337 standard, which allows for advanced features like gas sponsorship and batched transactions. Here's an example of sending a user operation from a smart account:
+
+**main.ts**
+
+```javascript
+import { CdpClient } from "@coinbase/cdp-sdk";
+import { parseEther } from "viem";
+
+const cdp = new CdpClient();
+
+const evmAccount = await cdp.evm.createAccount();
+const smartAccount = await cdp.evm.createSmartAccount({
+  owner: evmAccount,
+});
+console.log(`Created smart account: ${smartAccount.address}`);
+
+const sendResult = await cdp.evm.sendUserOperation({
+  smartAccount,
+  network: "base-sepolia",
+  calls: [
+    {
+      to: evmAccount.address,
+      value: parseEther("0"),
+      data: "0x",
+    },
+  ],
+});
+
+console.log("User operation sent with operation hash:", sendResult.userOpHash);
+console.log("Waiting for user operation to be confirmed...");
+
+const waitResult = await cdp.evm.waitForUserOperation({
+  smartAccountAddress: smartAccount.address,
+  userOpHash: sendResult.userOpHash,
+});
+
+console.log("User operation confirmed with status:", waitResult.status);
+
+const userOp = await cdp.evm.getUserOperation({
+  smartAccount,
+  userOpHash: sendResult.userOpHash,
+});
+
+console.log("Transaction hash:", userOp.transactionHash);
+```
+
+This example demonstrates how to:
+
+1. Create a regular EVM account
+2. Create a smart account with the EVM account as its owner
+3. Send a user operation from the smart account
+4. Wait for the operation to be confirmed
+5. Retrieve the transaction details
