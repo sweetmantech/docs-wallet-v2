@@ -32,5 +32,14 @@ export default defineConfig({
         },
       ],
     },
+    {
+      text: "Deploy",
+      items: [
+        {
+          text: "Next.js Project",
+          link: "/next-project-deployment",
+        },
+      ],
+    },
   ],
 });

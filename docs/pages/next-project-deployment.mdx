@@ -1,0 +1,341 @@
+# Next.js Project Deployment
+
+This guide will walk you through setting up a Next.js project with Coinbase Wallet v2 integration and a modern UI.
+
+## Prerequisites
+
+- Node.js v18.x or higher
+- Environment variables set up as described in the [Environment Setup](/environment-setup) guide
+
+## Step 1: Create a Next.js Application
+
+Start by creating a new Next.js application:
+
+```bash
+npx create-next-app
+```
+
+During the setup, you'll be prompted with several options. Here are the recommended settings:
+
+```
+✔ What is your project named? … my-wallet-app
+✔ Would you like to use TypeScript? … Yes
+✔ Would you like to use ESLint? … Yes
+✔ Would you like to use Tailwind CSS? … Yes
+✔ Would you like to use `src/` directory? … No
+✔ Would you like to use App Router? … Yes
+✔ Would you like to use Turbopack for `next dev`? › … Yes
+✔ Would you like to customize the default import alias? … No
+```
+
+Once the setup is complete, navigate to your project directory:
+
+```bash
+cd my-wallet-app
+```
+
+## Step 2: Set Up Shadcn UI
+
+Install and configure shadcn/ui for your Next.js project:
+
+```bash
+npx shadcn@latest init
+```
+
+During the setup, you'll be prompted with several configuration options:
+
+```
+✔ Preflight checks.
+✔ Verifying framework. Found Next.js.
+✔ Validating Tailwind CSS config. Found v4.
+✔ Validating import alias.
+✔ Which color would you like to use as the base color? › Neutral
+✔ Writing components.json.
+✔ Checking registry.
+✔ Updating CSS variables in app/globals.css
+✔ Installing dependencies.
+✔ Created 1 file:
+  - lib/utils.ts
+
+Success! Project initialization completed.
+You may now add components.
+```
+
+This command will:
+
+1. Add the necessary dependencies
+2. Create a components.json configuration file
+3. Configure your tailwind.config.js
+4. Create a lib/utils.ts file for utility functions
+5. Create the UI component structure
+
+## Step 3: Add Shadcn UI Components
+
+Now that shadcn/ui is set up, add the UI components for the wallet application:
+
+```bash
+npx shadcn@2.3.0 add "https://v0.dev/chat/b/b_ZEM1UvbMiGS?token=eyJhbGciOiJkaXIiLCJlbmMiOiJBMjU2R0NNIn0..B8o1_65iLWtlRQez.sp3V0rqy1-r3pNBMv1reFaLGlnCcnGbwlBzp-7Hhz27TLQ8xm3ShpdEMtHc.qMctb717egowNUdW5wac9A"
+```
+
+```
+✔ Checking registry.
+✔ Installing dependencies.
+✔ The file page.tsx already exists. Would you like to overwrite? … yes
+✔ Created 1 file:
+  - components/ui/button.tsx
+ℹ Updated 1 file:
+  - app/page.tsx
+```
+
+This will add a pre-designed UI template for a wallet application from v0.dev.
+
+## Run Your Application
+
+At this point, you should verify that your application is working correctly before adding the Wallet API integration.
+
+Start your development server:
+
+```bash
+npm run dev
+```
+
+Once started, open your browser and navigate to [http://localhost:3000](http://localhost:3000). You should see the UI template with placeholder elements. Make sure everything renders correctly before proceeding to the next step.
+
+## Step 4: Integrate Wallet v2 API
+
+Install the Coinbase CDP SDK:
+
+```bash
+npm install @coinbase/cdp-sdk
+```
+
+Create a services directory for your API functions:
+
+```bash
+mkdir -p src/services
+```
+
+Create a new file `src/services/wallet.ts` with the following content:
+
+```typescript
+import { CdpClient } from "@coinbase/cdp-sdk";
+import { parseEther } from "viem";
+
+export class WalletService {
+  private cdp: CdpClient;
+
+  constructor() {
+    this.cdp = new CdpClient();
+  }
+
+  async createAccount() {
+    const evmAccount = await this.cdp.evm.createAccount();
+    return evmAccount;
+  }
+
+  async createSmartAccount(ownerAccount: any) {
+    const smartAccount = await this.cdp.evm.createSmartAccount({
+      owner: ownerAccount,
+    });
+    return smartAccount;
+  }
+
+  async sendUserOperation(smartAccount: any, toAddress: string) {
+    const sendResult = await this.cdp.evm.sendUserOperation({
+      smartAccount,
+      network: "base-sepolia",
+      calls: [
+        {
+          to: toAddress,
+          value: parseEther("0"),
+          data: "0x",
+        },
+      ],
+    });
+
+    const waitResult = await this.cdp.evm.waitForUserOperation({
+      smartAccountAddress: smartAccount.address,
+      userOpHash: sendResult.userOpHash,
+    });
+
+    const userOp = await this.cdp.evm.getUserOperation({
+      smartAccount,
+      userOpHash: sendResult.userOpHash,
+    });
+
+    return {
+      userOpHash: sendResult.userOpHash,
+      status: waitResult.status,
+      transactionHash: userOp.transactionHash,
+    };
+  }
+}
+
+export const walletService = new WalletService();
+```
+
+## Step 5: Create UI Components to Display Results
+
+Update your main page component to display wallet functionality results. Create or modify `src/app/page.tsx`:
+
+```tsx
+"use client";
+
+import { useState } from "react";
+import { Button } from "@/components/ui/button";
+import {
+  Card,
+  CardContent,
+  CardDescription,
+  CardFooter,
+  CardHeader,
+  CardTitle,
+} from "@/components/ui/card";
+import { walletService } from "@/services/wallet";
+
+export default function Home() {
+  const [loading, setLoading] = useState(false);
+  const [evmAccount, setEvmAccount] = useState(null);
+  const [smartAccount, setSmartAccount] = useState(null);
+  const [transaction, setTransaction] = useState(null);
+  const [nftCollectionAddress, setNftCollectionAddress] =
+    useState("In process...");
+
+  const handleCreateAccount = async () => {
+    try {
+      setLoading(true);
+      const account = await walletService.createAccount();
+      setEvmAccount(account);
+
+      // Create smart account with the EVM account as owner
+      const smartAcc = await walletService.createSmartAccount(account);
+      setSmartAccount(smartAcc);
+    } catch (error) {
+      console.error("Error creating account:", error);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleSendTransaction = async () => {
+    if (!evmAccount || !smartAccount) return;
+
+    try {
+      setLoading(true);
+      const result = await walletService.sendUserOperation(
+        smartAccount,
+        evmAccount.address
+      );
+      setTransaction(result);
+    } catch (error) {
+      console.error("Error sending transaction:", error);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  return (
+    <main className="container mx-auto py-10">
+      <h1 className="text-3xl font-bold mb-6">Coinbase Wallet v2 Demo</h1>
+
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+        <Card>
+          <CardHeader>
+            <CardTitle>Wallet Creation</CardTitle>
+            <CardDescription>
+              Create a new EVM account and smart account
+            </CardDescription>
+          </CardHeader>
+          <CardContent>
+            {evmAccount && (
+              <div className="mb-4">
+                <h3 className="font-semibold">EVM Account:</h3>
+                <p className="text-sm break-all">{evmAccount.address}</p>
+              </div>
+            )}
+
+            {smartAccount && (
+              <div>
+                <h3 className="font-semibold">Smart Account:</h3>
+                <p className="text-sm break-all">{smartAccount.address}</p>
+              </div>
+            )}
+          </CardContent>
+          <CardFooter>
+            <Button onClick={handleCreateAccount} disabled={loading}>
+              {loading ? "Creating..." : "Create Accounts"}
+            </Button>
+          </CardFooter>
+        </Card>
+
+        <Card>
+          <CardHeader>
+            <CardTitle>Transactions</CardTitle>
+            <CardDescription>
+              Send a transaction using the smart account
+            </CardDescription>
+          </CardHeader>
+          <CardContent>
+            {transaction && (
+              <div>
+                <h3 className="font-semibold">Transaction Hash:</h3>
+                <p className="text-sm break-all">
+                  {transaction.transactionHash}
+                </p>
+                <h3 className="font-semibold mt-2">Status:</h3>
+                <p className="text-sm">{transaction.status}</p>
+              </div>
+            )}
+          </CardContent>
+          <CardFooter>
+            <Button
+              onClick={handleSendTransaction}
+              disabled={loading || !smartAccount}
+            >
+              {loading ? "Sending..." : "Send Transaction"}
+            </Button>
+          </CardFooter>
+        </Card>
+      </div>
+
+      <Card className="mt-6">
+        <CardHeader>
+          <CardTitle>Digital Art Collection</CardTitle>
+          <CardDescription>
+            Your NFT collection deployment status
+          </CardDescription>
+        </CardHeader>
+        <CardContent>
+          <h3 className="font-semibold">Collection Address:</h3>
+          <p className="text-sm break-all">{nftCollectionAddress}</p>
+        </CardContent>
+      </Card>
+    </main>
+  );
+}
+```
+
+## Step 6: Running the Project
+
+Make sure your environment variables are set:
+
+```bash
+export CDP_API_KEY_ID=your-api-key-id
+export CDP_API_KEY_SECRET=your-api-key-secret
+export CDP_WALLET_SECRET=your-wallet-secret
+```
+
+Start the development server:
+
+```bash
+npm run dev
+```
+
+Visit `http://localhost:3000` to see your application in action.
+
+## Next Steps
+
+- Implement error handling and loading states
+- Add transaction history tracking
+- Deploy your application to Vercel or another hosting service
+- Complete the digital art collection deployment functionality
