@@ -1,0 +1,24 @@
+# Create an EVM Account
+
+The following code illustrates how to create an EVM account managed by the v2 Wallet API.
+
+**main.ts**
+
+```javascript
+import { CdpClient } from "@coinbase/cdp-sdk";
+
+const cdp = new CdpClient();
+
+const evmAccount = await cdp.evm.createAccount();
+console.log(`Created account: ${evmAccount.address}`);
+```
+
+> **Caution**
+> In a production environment, we recommend turning on IP Whitelisting.
+
+## Next Steps
+
+After creating an EVM account, you can:
+
+- [Fund your account with testnet ETH](/fund-evm-account)
+- [Create a smart account](/create-smart-account)

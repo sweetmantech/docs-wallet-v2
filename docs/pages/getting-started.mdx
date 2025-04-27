@@ -23,6 +23,8 @@ The CDP SDK requires Node.js v18.x or higher. You can run the following command 
 node --version
 ```
 
+## Setup
+
 Follow these steps to run the code snippets in this quickstart:
 
 1. Initialize a new project by running
@@ -63,6 +65,11 @@ touch main.ts
 
 5. Copy and paste the example code you'd like to run into main.ts
 
+- [Create an EVM Account](/create-evm-account)
+- [Fund an EVM Account](/fund-evm-account)
+- [Create an EVM Smart Account](/create-smart-account)
+- [General Transactions](/general-transactions)
+
 6. Execute main.ts
 
 ```bash
@@ -72,119 +79,11 @@ npx tsx main.ts
 > **Important**
 > Before running any code examples, make sure to set up your environment variables as described in the [Environment Setup](/environment-setup) guide.
 
-## Create an EVM Account
+## Next Steps
 
-The following code illustrate how to create an EVM account managed by the v2 Wallet API.
+Now that you have your development environment set up, you can explore the following guides to start building with the Wallet API v2:
 
-**main.ts**
-
-```javascript
-import { CdpClient } from "@coinbase/cdp-sdk";
-
-const cdp = new CdpClient();
-
-const evmAccount = await cdp.evm.createAccount();
-console.log(`Created account: ${evmAccount.address}`);
-```
-
-> **Caution**
-> In a production environment, we recommend turning on IP Whitelisting.
-
-## Fund an EVM Account
-
-Accounts do not have funds on them to start. We provide a Faucet API to fund your account with testnet ETH.
-
-**main.ts**
-
-```javascript
-import { CdpClient } from "@coinbase/cdp-sdk";
-
-const cdp = new CdpClient();
-
-const evmAccount = await cdp.evm.createAccount();
-const { transactionHash } = await cdp.evm.requestFaucet({
-  address: evmAccount.address,
-  network: "base-sepolia",
-  token: "eth",
-});
-
-console.log(
-  `Requested funds from faucet: https://sepolia.basescan.org/tx/${transactionHash}`
-);
-```
-
-## Create an EVM Smart Account
-
-Smart accounts are smart contracts on EVM blockchains that offer advanced functionality such as gas sponsorships and spend permissions.
-
-Smart accounts require an owner account to sign on its behalf. In this example, we will use the previously created EVM account as the owner.
-
-**main.ts**
-
-```javascript
-import { CdpClient } from "@coinbase/cdp-sdk";
-
-const cdp = new CdpClient();
-
-const evmAccount = await cdp.evm.createAccount();
-const smartAccount = await cdp.evm.createSmartAccount({
-  owner: evmAccount,
-});
-console.log(`Created smart account: ${smartAccount.address}`);
-```
-
-## User Operations with EIP-4337
-
-Smart accounts support the EIP-4337 standard, which allows for advanced features like gas sponsorship and batched transactions. Here's an example of sending a user operation from a smart account:
-
-**main.ts**
-
-```javascript
-import { CdpClient } from "@coinbase/cdp-sdk";
-import { parseEther } from "viem";
-
-const cdp = new CdpClient();
-
-const evmAccount = await cdp.evm.createAccount();
-const smartAccount = await cdp.evm.createSmartAccount({
-  owner: evmAccount,
-});
-console.log(`Created smart account: ${smartAccount.address}`);
-
-const sendResult = await cdp.evm.sendUserOperation({
-  smartAccount,
-  network: "base-sepolia",
-  calls: [
-    {
-      to: evmAccount.address,
-      value: parseEther("0"),
-      data: "0x",
-    },
-  ],
-});
-
-console.log("User operation sent with operation hash:", sendResult.userOpHash);
-console.log("Waiting for user operation to be confirmed...");
-
-const waitResult = await cdp.evm.waitForUserOperation({
-  smartAccountAddress: smartAccount.address,
-  userOpHash: sendResult.userOpHash,
-});
-
-console.log("User operation confirmed with status:", waitResult.status);
-
-const userOp = await cdp.evm.getUserOperation({
-  smartAccount,
-  userOpHash: sendResult.userOpHash,
-});
-
-console.log("Transaction hash:", userOp.transactionHash);
-```
-
-This example demonstrates how to:
-
-1. Create a regular EVM account
-2. Create a smart account with the EVM account as its owner
-3. Send a user operation from the smart account
-4. Wait for the operation to be confirmed
-5. Retrieve the transaction details
+1. [Create an EVM Account](/create-evm-account)
+2. [Fund an EVM Account](/fund-evm-account)
+3. [Create an EVM Smart Account](/create-smart-account)
+4. [General Transactions](/general-transactions)

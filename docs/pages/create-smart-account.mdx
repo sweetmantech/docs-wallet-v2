@@ -1,0 +1,25 @@
+# Create an EVM Smart Account
+
+Smart accounts are smart contracts on EVM blockchains that offer advanced functionality such as gas sponsorships and spend permissions.
+
+Smart accounts require an owner account to sign on its behalf. In this example, we will use the previously created EVM account as the owner.
+
+**main.ts**
+
+```javascript
+import { CdpClient } from "@coinbase/cdp-sdk";
+
+const cdp = new CdpClient();
+
+const evmAccount = await cdp.evm.createAccount();
+const smartAccount = await cdp.evm.createSmartAccount({
+  owner: evmAccount,
+});
+console.log(`Created smart account: ${smartAccount.address}`);
+```
+
+## Next Steps
+
+After creating a smart account, you can:
+
+- [Send transactions with user operations](/general-transactions)

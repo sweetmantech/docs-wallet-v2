@@ -1,0 +1,55 @@
+# General Transactions
+
+Smart accounts support the EIP-4337 standard, which allows for advanced features like gas sponsorship and batched transactions. Here's an example of sending a user operation from a smart account:
+
+**main.ts**
+
+```javascript
+import { CdpClient } from "@coinbase/cdp-sdk";
+import { parseEther } from "viem";
+
+const cdp = new CdpClient();
+
+const evmAccount = await cdp.evm.createAccount();
+const smartAccount = await cdp.evm.createSmartAccount({
+  owner: evmAccount,
+});
+console.log(`Created smart account: ${smartAccount.address}`);
+
+const sendResult = await cdp.evm.sendUserOperation({
+  smartAccount,
+  network: "base-sepolia",
+  calls: [
+    {
+      to: evmAccount.address,
+      value: parseEther("0"),
+      data: "0x",
+    },
+  ],
+});
+
+console.log("User operation sent with operation hash:", sendResult.userOpHash);
+console.log("Waiting for user operation to be confirmed...");
+
+const waitResult = await cdp.evm.waitForUserOperation({
+  smartAccountAddress: smartAccount.address,
+  userOpHash: sendResult.userOpHash,
+});
+
+console.log("User operation confirmed with status:", waitResult.status);
+
+const userOp = await cdp.evm.getUserOperation({
+  smartAccount,
+  userOpHash: sendResult.userOpHash,
+});
+
+console.log("Transaction hash:", userOp.transactionHash);
+```
+
+This example demonstrates how to:
+
+1. Create a regular EVM account
+2. Create a smart account with the EVM account as its owner
+3. Send a user operation from the smart account
+4. Wait for the operation to be confirmed
+5. Retrieve the transaction details

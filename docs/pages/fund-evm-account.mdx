@@ -1,0 +1,29 @@
+# Fund an EVM Account
+
+Accounts do not have funds on them to start. We provide a Faucet API to fund your account with testnet ETH.
+
+**main.ts**
+
+```javascript
+import { CdpClient } from "@coinbase/cdp-sdk";
+
+const cdp = new CdpClient();
+
+const evmAccount = await cdp.evm.createAccount();
+const { transactionHash } = await cdp.evm.requestFaucet({
+  address: evmAccount.address,
+  network: "base-sepolia",
+  token: "eth",
+});
+
+console.log(
+  `Requested funds from faucet: https://sepolia.basescan.org/tx/${transactionHash}`
+);
+```
+
+## Next Steps
+
+After funding your EVM account, you can:
+
+- [Create a smart account](/create-smart-account)
+- [Send transactions](/general-transactions)
