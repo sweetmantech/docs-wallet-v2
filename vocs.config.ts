@@ -8,6 +8,10 @@ export default defineConfig({
       link: "/getting-started",
     },
     {
+      text: "Environment Setup",
+      link: "/environment-setup",
+    },
+    {
       text: "Example",
       link: "/example",
     },

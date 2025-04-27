@@ -1,0 +1,41 @@
+# Environment Setup
+
+Follow these instructions to set up your environment to use the v2 Wallet API. Make sure to set up your environment variables before running any code snippets.
+
+## API Keys and Secrets
+
+To use the Coinbase Wallet API v2, you need to set up the following credentials:
+
+1. **Create a CDP Secret API key**
+
+   - Log in to your [Coinbase Developer Portal](https://portal.cdp.coinbase.com/projects/overview)
+   - Navigate to the API Keys section
+   - Create a new key with default permissions
+
+2. **Generate a Wallet Secret**
+
+   - Visit the [Wallet API product page](https://portal.cdp.coinbase.com/products/wallet-api)
+   - Click on the "Generate" button in the Wallet Secret section
+   - This secret is used to encrypt and decrypt your wallet data
+   - Store this securely as it cannot be recovered if lost
+
+3. **Export these variables in your shell**
+
+```bash
+export CDP_API_KEY_ID=your-api-key-id
+export CDP_API_KEY_SECRET=your-api-key-secret
+export CDP_WALLET_SECRET=your-wallet-secret
+```
+
+## Security Recommendations
+
+When working with API keys and secrets, follow these security best practices:
+
+- Never commit secrets to version control
+- Consider using a .env file with a package like dotenv
+- Enable IP whitelisting for production environments
+- Rotate API keys periodically
+
+## Next Steps
+
+Once your environment is set up, you can return to the [Quickstart Guide](/getting-started) to begin building with the Wallet API v2.
