@@ -1,0 +1,32 @@
+---
+layout: landing
+---
+
+import { HomePage } from "vocs/components";
+
+<HomePage.Root>
+  <HomePage.Logo />
+  <HomePage.Tagline>Coinbase Wallet V2 Quickstart Docs</HomePage.Tagline>
+  <HomePage.Description>
+    
+| Feature                          | v1 Wallet API 🔴       | v2 Wallet API 🟢                 |
+| -------------------------------- | ---------------------- | -------------------------------- |
+| Security management              | Complex                | Easy                             |
+| Private key security             | Developer-managed      | Secured in AWS Nitro Enclave TEE |
+| Network support                  | EVM only               | EVM and Solana                   |
+| Authentication                   | One secret per account | Single secret for all accounts   |
+| Wallet scope                     | Single EVM network     | Multiple EVM networks            |
+| Viem compatibility               | —                      | ✓                                |
+| Gas sponsorship (via EIP-4337)   | —                      | ✓                                |
+| Spend permissions (via EIP-4337) | —                      | ✓                                |
+
+  </HomePage.Description>
+  <HomePage.Buttons>
+    <HomePage.Button href="/getting-started" variant="accent">
+      Get started
+    </HomePage.Button>
+    <HomePage.Button href="https://github.com/wevm/vocs">
+      GitHub
+    </HomePage.Button>
+  </HomePage.Buttons>
+</HomePage.Root>
