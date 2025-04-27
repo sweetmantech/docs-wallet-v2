@@ -81,13 +81,43 @@ npx shadcn@2.3.0 add "https://v0.dev/chat/b/b_ZEM1UvbMiGS?token=eyJhbGciOiJkaXIi
 ✔ Checking registry.
 ✔ Installing dependencies.
 ✔ The file page.tsx already exists. Would you like to overwrite? … yes
-✔ Created 1 file:
-  - components/ui/button.tsx
-ℹ Updated 1 file:
+✔ The file button.tsx already exists. Would you like to overwrite? … yes
+✔ Created 2 files:
+  - app/api/create-wallet/route.ts
+  - components/ui/alert.tsx
+ℹ Updated 2 files:
   - app/page.tsx
+  - components/ui/button.tsx
 ```
 
 This will add a pre-designed UI template for a wallet application from v0.dev.
+
+## Set Up Environment Variables
+
+Before running your application, you need to set up the environment variables for the Wallet API:
+
+1. Create a `.env.local` file in the root of your project:
+
+```bash
+touch .env.local
+```
+
+2. Add the following variables to your `.env.local` file:
+
+```
+CDP_API_KEY_ID=your-api-key-id
+CDP_API_KEY_SECRET=your-api-key-secret
+CDP_WALLET_SECRET=your-wallet-secret
+CDP_PAYMASTER_URL=your-paymaster-url
+```
+
+Replace the placeholder values with your actual credentials from the [Coinbase Developer Portal](https://portal.cdp.coinbase.com/products/wallet-api).
+
+3. Make sure to add `.env.local` to your `.gitignore` file to prevent committing sensitive credentials:
+
+```bash
+echo ".env.local" >> .gitignore
+```
 
 ## Run Your Application
 
@@ -101,241 +131,95 @@ npm run dev
 
 Once started, open your browser and navigate to [http://localhost:3000](http://localhost:3000). You should see the UI template with placeholder elements. Make sure everything renders correctly before proceeding to the next step.
 
-## Step 4: Integrate Wallet v2 API
+## Step 4: Deploy with Vercel CLI
 
-Install the Coinbase CDP SDK:
+To deploy your application to Vercel, you'll need to install and use the Vercel CLI:
 
-```bash
-npm install @coinbase/cdp-sdk
-```
-
-Create a services directory for your API functions:
+1. Install the Vercel CLI globally:
 
 ```bash
-mkdir -p src/services
+npm install -g vercel
 ```
 
-Create a new file `src/services/wallet.ts` with the following content:
-
-```typescript
-import { CdpClient } from "@coinbase/cdp-sdk";
-import { parseEther } from "viem";
-
-export class WalletService {
-  private cdp: CdpClient;
-
-  constructor() {
-    this.cdp = new CdpClient();
-  }
-
-  async createAccount() {
-    const evmAccount = await this.cdp.evm.createAccount();
-    return evmAccount;
-  }
-
-  async createSmartAccount(ownerAccount: any) {
-    const smartAccount = await this.cdp.evm.createSmartAccount({
-      owner: ownerAccount,
-    });
-    return smartAccount;
-  }
-
-  async sendUserOperation(smartAccount: any, toAddress: string) {
-    const sendResult = await this.cdp.evm.sendUserOperation({
-      smartAccount,
-      network: "base-sepolia",
-      calls: [
-        {
-          to: toAddress,
-          value: parseEther("0"),
-          data: "0x",
-        },
-      ],
-    });
-
-    const waitResult = await this.cdp.evm.waitForUserOperation({
-      smartAccountAddress: smartAccount.address,
-      userOpHash: sendResult.userOpHash,
-    });
-
-    const userOp = await this.cdp.evm.getUserOperation({
-      smartAccount,
-      userOpHash: sendResult.userOpHash,
-    });
-
-    return {
-      userOpHash: sendResult.userOpHash,
-      status: waitResult.status,
-      transactionHash: userOp.transactionHash,
-    };
-  }
-}
-
-export const walletService = new WalletService();
-```
-
-## Step 5: Create UI Components to Display Results
-
-Update your main page component to display wallet functionality results. Create or modify `src/app/page.tsx`:
-
-```tsx
-"use client";
-
-import { useState } from "react";
-import { Button } from "@/components/ui/button";
-import {
-  Card,
-  CardContent,
-  CardDescription,
-  CardFooter,
-  CardHeader,
-  CardTitle,
-} from "@/components/ui/card";
-import { walletService } from "@/services/wallet";
-
-export default function Home() {
-  const [loading, setLoading] = useState(false);
-  const [evmAccount, setEvmAccount] = useState(null);
-  const [smartAccount, setSmartAccount] = useState(null);
-  const [transaction, setTransaction] = useState(null);
-  const [nftCollectionAddress, setNftCollectionAddress] =
-    useState("In process...");
-
-  const handleCreateAccount = async () => {
-    try {
-      setLoading(true);
-      const account = await walletService.createAccount();
-      setEvmAccount(account);
-
-      // Create smart account with the EVM account as owner
-      const smartAcc = await walletService.createSmartAccount(account);
-      setSmartAccount(smartAcc);
-    } catch (error) {
-      console.error("Error creating account:", error);
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  const handleSendTransaction = async () => {
-    if (!evmAccount || !smartAccount) return;
-
-    try {
-      setLoading(true);
-      const result = await walletService.sendUserOperation(
-        smartAccount,
-        evmAccount.address
-      );
-      setTransaction(result);
-    } catch (error) {
-      console.error("Error sending transaction:", error);
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  return (
-    <main className="container mx-auto py-10">
-      <h1 className="text-3xl font-bold mb-6">Coinbase Wallet v2 Demo</h1>
-
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-        <Card>
-          <CardHeader>
-            <CardTitle>Wallet Creation</CardTitle>
-            <CardDescription>
-              Create a new EVM account and smart account
-            </CardDescription>
-          </CardHeader>
-          <CardContent>
-            {evmAccount && (
-              <div className="mb-4">
-                <h3 className="font-semibold">EVM Account:</h3>
-                <p className="text-sm break-all">{evmAccount.address}</p>
-              </div>
-            )}
-
-            {smartAccount && (
-              <div>
-                <h3 className="font-semibold">Smart Account:</h3>
-                <p className="text-sm break-all">{smartAccount.address}</p>
-              </div>
-            )}
-          </CardContent>
-          <CardFooter>
-            <Button onClick={handleCreateAccount} disabled={loading}>
-              {loading ? "Creating..." : "Create Accounts"}
-            </Button>
-          </CardFooter>
-        </Card>
-
-        <Card>
-          <CardHeader>
-            <CardTitle>Transactions</CardTitle>
-            <CardDescription>
-              Send a transaction using the smart account
-            </CardDescription>
-          </CardHeader>
-          <CardContent>
-            {transaction && (
-              <div>
-                <h3 className="font-semibold">Transaction Hash:</h3>
-                <p className="text-sm break-all">
-                  {transaction.transactionHash}
-                </p>
-                <h3 className="font-semibold mt-2">Status:</h3>
-                <p className="text-sm">{transaction.status}</p>
-              </div>
-            )}
-          </CardContent>
-          <CardFooter>
-            <Button
-              onClick={handleSendTransaction}
-              disabled={loading || !smartAccount}
-            >
-              {loading ? "Sending..." : "Send Transaction"}
-            </Button>
-          </CardFooter>
-        </Card>
-      </div>
-
-      <Card className="mt-6">
-        <CardHeader>
-          <CardTitle>Digital Art Collection</CardTitle>
-          <CardDescription>
-            Your NFT collection deployment status
-          </CardDescription>
-        </CardHeader>
-        <CardContent>
-          <h3 className="font-semibold">Collection Address:</h3>
-          <p className="text-sm break-all">{nftCollectionAddress}</p>
-        </CardContent>
-      </Card>
-    </main>
-  );
-}
-```
-
-## Step 6: Running the Project
-
-Make sure your environment variables are set:
+2. Login to your Vercel account:
 
 ```bash
-export CDP_API_KEY_ID=your-api-key-id
-export CDP_API_KEY_SECRET=your-api-key-secret
-export CDP_WALLET_SECRET=your-wallet-secret
+vercel login
 ```
 
-Start the development server:
+3. Deploy your application:
 
 ```bash
-npm run dev
+vercel
 ```
 
-Visit `http://localhost:3000` to see your application in action.
+During the deployment process, you'll be prompted with several questions:
 
-## Next Steps
+````
+vercel
+Vercel CLI 41.5.0
+? Set up and deploy
+“~/Projects/BASE/my-wallet-app? yes
+? Which scope should contain your project?
+your projects
+? Link to existing project? no
+? What’s your project’s name? my-wallet-app
+? In which directory is your code located? ./
+Local settings detected in vercel.json:
+Auto-detected Project Settings (Next.js):
+- Build Command: next build
+- Development Command: next dev --port $PORT
+- Install Command: `yarn install`, `pnpm install`, `npm install`, or `bun install`
+- Output Directory: Next.js default
+? Want to modify these settings? no
+🔗  Linked to your-projects/my-wallet-app (created .vercel)
+🔍  Inspect: https://vercel.com/your-projects/my-wallet-app/2Y8XQ5M5tgasjBMK4AbU5eUTvnm4 [3s]
+✅  Production: https://my-wallet-app-your-projects.vercel.app [3s]```
+````
 
-- Implement error handling and loading states
-- Add transaction history tracking
-- Deploy your application to Vercel or another hosting service
-- Complete the digital art collection deployment functionality
+4. Use vercel env add to set up your Environment Variables and add your Wallet API credentials:
+
+```
+vercel env add
+Vercel CLI x.x.0
+? What's the name of the variable? CDP_API_KEY_ID
+? What's the value of CDP_API_KEY_ID?
+xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx
+? Add CDP_API_KEY_ID to which Environments (select
+multiple)? Production, Preview, Development
+✅ Added Environment Variable CDP_API_KEY_ID to Project [299ms]
+vercel env add
+Vercel CLI x.x.x
+? What's the name of the variable? CDP_API_KEY_SECRET
+? What's the value of CDP_API_KEY_SECRET?
+xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx
+? Add CDP_API_KEY_SECRET to which Environments (select
+multiple)? Production, Preview, Development
+✅ Added Environment Variable CDP_API_KEY_SECRET to Project delete-wallet-v2-app [377ms]
+vercel env add
+Vercel CLI x.x.x
+? What's the name of the variable? CDP_WALLET_SECRET
+? What's the value of CDP_WALLET_SECRET?
+xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx
+? Add CDP_WALLET_SECRET to which Environments (select
+multiple)? Production, Preview, Development
+✅ Added Environment Variable CDP_WALLET_SECRET to Project delete-wallet-v2-app [336ms]
+vercel env add
+Vercel CLI x.x.x
+? What's the name of the variable? CDP_PAYMASTER_URL
+? What's the value of CDP_PAYMASTER_URL?
+https://api.developer.coinbase.com/rpc/v1/base-sepolia/
+xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx
+? Add CDP_PAYMASTER_URL to which Environments (select
+multiple)? Production, Preview, Development
+✅ Added Environment Variable CDP_PAYMASTER_URL to Project delete-wallet-v2-app [425ms]
+
+```
+
+5. After setting your environment variables, deploy again to apply the changes:
+
+```bash
+vercel
+```
+
+6. Visit your production URL to see your deployed application with the environment variables applied.
